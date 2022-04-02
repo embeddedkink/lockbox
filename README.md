@@ -9,6 +9,15 @@ Usage of the box is fully private and the box does not ping out to remote server
 
 The project has been designed to be as easy to set up as possible. Off the shelf components like the NodeMCU Amica and an SG90 servo have been chosen for their wide availability. The rest is 3d printed for easy customization.
 
+## Features
+
+- Secure. No way to break into the box without physically destroying it
+- Safe. Is the emergency bigger than the cost of replacing the box? Smash it with a hammer
+- Cheap. one actuator and no real time clock hardware necessary
+- Compatible with all key-based locks
+- Based on common off-the-shelf (COTS) and 3d printed parts
+- Fully local system, no dependency on the cloud or telemetry collected
+
 ## Setting up
 
 - Print, or have someone print the box, lid, and locking cam.
@@ -24,9 +33,13 @@ The project has been designed to be as easy to set up as possible. Off the shelf
   - Lock the box.
   - Open the box with the password in the newly created txt file.
 
+## Recovering
+
+If you had to abort a session, the electronics can be reset and used in a new box. This can be done by simply connecting the usb port on the microcontroller, listening on the UART (`picocom -b 9600 /dev/ttyUSB0`) and pressing the RESET button on the microcontroller. It will now send data about its status and the password. Use the control software to unlock like normal.
+
 ## Usage
 
-Connect power up the microcontroller. Store the key in the box inside of a plastic enclosure. Lock the box using the controller, send the password away, and delete it permanently on you local machine. The box can now be turned off, and turned on again when you have the password. For details on how to use the controller, read [the readme](lockbox_control/README.md)
+Connect power up the microcontroller. Put the key in a plastic box or bag and into the lockbox. Lock the box using the controller, send the password away, and delete it permanently on you local machine. The box can now be turned off, and turned on again when you have the password. For details on how to use the controller, read [the readme](lockbox_control/README.md)
 
 ## TODO
 
@@ -34,3 +47,5 @@ Connect power up the microcontroller. Store the key in the box inside of a plast
 - [ ] Add web-based controller
 - [ ] Allow addressing box based on user-provided ip
 - [ ] Create a key compartment in the box
+- [ ] Perform destructive tests on PLA and PETG versions of box
+- [ ] Assess compatibility with other online keyholding platforms

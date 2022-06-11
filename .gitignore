@@ -2,3 +2,7 @@
 **/.vscode
 
 lockbox_control/latestpassword.txt
+
+*.deps
+*.stl
+*.generated.scad

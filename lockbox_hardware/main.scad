@@ -84,6 +84,12 @@ module box() //make me
         wings_len = box_size_y - non_wings_len;
         translate([-(box_size_x)/2, 0, outer_wall_thickness])
             cube([box_size_x, wings_len, servo_thickness]);
+        // Cam opening
+        translate([-cam_slot_size/2, 0, 0])
+            #cube([cam_slot_size, cam_height, outer_wall_thickness]);
+        // Power wires opening
+        translate([(box_size_x/2)-pins_width-outer_wall_thickness,box_size_y-outer_wall_thickness,box_size_z-outer_wall_thickness-pins_width*2])
+            cube([pins_width, outer_wall_thickness, pins_width*2]);
         // Version text
         translate([0,box_size_y-layer_height,0])
         rotate([90,0,180])
@@ -99,14 +105,8 @@ module box() //make me
         logo_width = 12;
         translate([2,box_size_y,14])
         rotate([90,0,180])
-        scale([logo_width/64,logo_width/64,layer_height/255])
-        surface(file="eki-logo-simple.png", invert = true)
-        // Cam opening
-        translate([-cam_slot_size/2, 0, 0])
-            cube([cam_slot_size, cam_height, outer_wall_thickness]);
-        // Power wires opening
-        translate([(box_size_x/2)-pins_width-outer_wall_thickness,box_size_y-outer_wall_thickness,box_size_z-outer_wall_thickness-pins_width*2])
-            cube([pins_width, outer_wall_thickness, pins_width*2]);
+            scale([logo_width/64,logo_width/64,layer_height/255])
+            surface(file="eki-logo-simple.png", invert = true);
     }
 }
 

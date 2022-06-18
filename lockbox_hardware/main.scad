@@ -11,6 +11,8 @@ servo_height = 30.5;
 servo_thickness = 12.5;
 servo_wings_width = 32.5;
 servo_wings_offset = 16.5;
+servo_wings_thickness = 3;
+cam_bridge_height = 1.8;
 
 cam_height = 3;
 
@@ -18,9 +20,13 @@ cam_height = 3;
 
 inner_wall_thickness = 1.2;
 outer_wall_thickness = 1.8;
-layer_height = 0.32;
 
-cam_bridge_height = 5*layer_height;
+lid_thickness = 1.8;
+lid_height = 24;
+lid_box_tolerance = 0.3;
+
+layer_height = 0.32;
+bridging_tolerance = 0.6;
 
 // inter-component calculations
 
@@ -45,7 +51,8 @@ make();
 
 module make() {
     box();
-    lid();
+    translate([0,-lid_thickness,-lid_thickness-lid_box_tolerance])
+        !lid();
     cam();
 }
 
@@ -85,8 +92,8 @@ module box() //make me
         translate([-(box_size_x)/2, 0, outer_wall_thickness])
             cube([box_size_x, wings_len, servo_thickness]);
         // Cam opening
-        translate([-cam_slot_size/2, 0, 0])
-            #cube([cam_slot_size, cam_height, outer_wall_thickness]);
+        translate([-cam_slot_size/2, -bridging_tolerance, 0])
+            cube([cam_slot_size, cam_height+bridging_tolerance, outer_wall_thickness]);
         // Power wires opening
         translate([(box_size_x/2)-pins_width-outer_wall_thickness,box_size_y-outer_wall_thickness,box_size_z-outer_wall_thickness-pins_width*2])
             cube([pins_width, outer_wall_thickness, pins_width*2]);
@@ -112,6 +119,32 @@ module box() //make me
 
 module lid() //make me
 {
+    difference()
+    {
+        body_x = box_size_x+2*lid_thickness;
+        body_y = lid_height;
+        body_z = box_size_z+3*lid_thickness;
+        translate([-body_x/2,0,-lid_thickness])
+            cube([body_x, body_y, body_z]);
+        
+        body_hollow_x = box_size_x+lid_box_tolerance*2;
+        body_hollow_y = lid_height-lid_thickness;
+        body_hollow_z = box_size_z+2*lid_box_tolerance;
+        translate([-body_hollow_x/2,lid_thickness,lid_thickness])
+            cube([body_hollow_x, body_hollow_y, body_hollow_z]);
+        
+        // Cam bridge slit
+        translate([-(box_size_x+lid_box_tolerance*2)/2,0,lid_thickness])
+            cube([box_size_x+lid_box_tolerance*2, lid_thickness, lid_thickness+2*lid_box_tolerance]);
+        
+        // Slit for cam
+        translate([-(box_size_x+lid_box_tolerance*2)/2,lid_thickness,0])
+            cube([box_size_x+lid_box_tolerance*2, cam_height+bridging_tolerance, lid_thickness+2*lid_box_tolerance]);
+        
+        // Slits for servo wings
+        translate([-(box_size_x+lid_thickness*2)/2,lid_thickness+(servo_height-servo_wings_offset)-servo_wings_thickness,lid_thickness+lid_box_tolerance+outer_wall_thickness])
+            cube([box_size_x+lid_thickness*2, lid_height-lid_thickness-(servo_height-servo_wings_offset)+servo_wings_thickness, servo_thickness+2*lid_box_tolerance]);
+    }
 }
 
 module cam() //make me

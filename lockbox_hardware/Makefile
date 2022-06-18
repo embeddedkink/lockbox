@@ -16,7 +16,7 @@ include $(wildcard *.deps)
 	echo 'use <main.scad>\n$*();' > $@
 
 %.stl: %.generated.scad
-	openscad -DFN=64 -m make -o $@ -d $@.deps $<
+	openscad -DFN=64 -D "MODELVER=\"$(shell git rev-parse --short=6 HEAD)\"" -m make -o $@ -d $@.deps $<
 
 image:
 	openscad -DFN=32 --render --imgsize 1600,1200 -o main.png main.scad

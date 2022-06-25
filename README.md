@@ -12,7 +12,7 @@ The project has been designed to be as easy to set up as possible. Off the shelf
 ## Selling points
 
 - Secure. No way to break into the box without physically destroying it
-- Safe. Is the emergency bigger than the cost of replacing the box? Smash it with a hammer
+- Safe. Is the emergency bigger than the cost of replacing the box? Just pull the lid off. (This does destroy the box! A more safe design for less abled bodied people is coming soon.)
 - Cheap. Only one actuator and no real time clock necessary
 - Compatible with all locks based on small physical keys (larger key compatibility coming soon!)
 - Based on common off-the-shelf (COTS) and 3d printed parts

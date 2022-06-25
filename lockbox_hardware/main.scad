@@ -53,7 +53,8 @@ module make() {
     box();
     translate([0,-lid_thickness,-lid_thickness-lid_box_tolerance])
         lid();
-    !cam();
+    translate([0,-30,0])
+        cam();
 }
 
 module versiontext()
@@ -114,8 +115,10 @@ module box() //make me
                 versiontext();
             // Logo
             logo_width = 12;
-            translate([2,box_size_y,14])
+            #translate([2,box_size_y,14])
             rotate([90,0,180])
+                // Hack:
+                scale([1,1,4])
                 scale([logo_width/64,logo_width/64,layer_height/255])
                 surface(file="eki-logo-simple.png", invert = true);
         }

@@ -26,7 +26,7 @@ lid_height = 24;
 lid_box_tolerance = 0.3;
 
 layer_height = 0.32;
-bridging_tolerance = 0.6;
+bridging_tolerance = 0.8;
 
 // inter-component calculations
 
@@ -176,6 +176,7 @@ module cam() //make me
     cam_teeth_cube_size = 0.5;
     cam_teeth_count = 22;
     cam_servo_tolerance = 0.3;
+    cam_height_extra_tolerance = 0.5;
 
     acutal_cam_hole_diameter = cam_hole_diameter + cam_servo_tolerance*2;
     cam_teeth_length = sqrt((cam_teeth_cube_size*cam_teeth_cube_size)*2);
@@ -185,18 +186,18 @@ module cam() //make me
         difference()
         {
             hull(){
-                cylinder(h=cam_height, r=cam_outer_diameter/2);
+                cylinder(h=cam_height-cam_height_extra_tolerance, r=cam_outer_diameter/2);
                 translate([0,cam_outer_diameter/2,0])
-                    cylinder(h=cam_height, r=outer_wall_thickness*2);
+                    cylinder(h=cam_height-cam_height_extra_tolerance, r=outer_wall_thickness*2);
             }
-            cylinder(h=cam_height, r=acutal_cam_hole_diameter/2);
+            cylinder(h=cam_height-cam_height_extra_tolerance, r=acutal_cam_hole_diameter/2);
         }
         for (a = [0:360/cam_teeth_count:360])
         {
             rotate([0,0,a])
             translate([0,acutal_cam_hole_diameter/2 - cam_teeth_length/2,0])
             rotate([0,0,45])
-            cube([cam_teeth_cube_size,cam_teeth_cube_size,cam_height]);
+            cube([cam_teeth_cube_size,cam_teeth_cube_size,cam_height-cam_height_extra_tolerance]);
         }
     }
 }

@@ -1,18 +1,19 @@
 #include <Arduino.h>
-#include <Servo.h>
-#include <WiFiManager.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <Servo.h>
+#include <WiFiClient.h>
+#include <WiFiManager.h>
+
 #include "ESP8266mDNS.h"
 
-#define PINDEBUG D1
+#define PINDEBUGLEDPRIMARY D1
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64
 #define MAX_INCOMING_DATA_LENGTH 256
 #define TCP_PORT 5000
-#define INITSTRING "HTEK_LOCKBOX"
+#define INITSTRING "EKI_LOCKBOX"
 #define CAM_INVERTED false
 #define CAM_CLOSED 0
 #define CAM_OPEN 180
@@ -118,7 +119,7 @@ bool get_is_locked()
 {
     EEPROMStateObject state;
     EEPROM.get(EEPROM_STATE_ADDR, state);
-    return state.locked; // TODO: investigate
+    return state.locked; // TODO: investigate "may be used uninitialized"
 }
 
 void set_hardware_locked(bool lock)
@@ -222,12 +223,12 @@ void setup()
     delay(500);
     EEPROM.begin(EEPROM_SIZE);
     myservo.attach(PINSERVO);
-    pinMode(PINDEBUG, OUTPUT);
-    digitalWrite(PINDEBUG, LOW);
+    pinMode(PINDEBUGLEDPRIMARY, OUTPUT);
+    digitalWrite(PINDEBUGLEDPRIMARY, LOW);
 
     if (!verify_eeprom_state_validity())
     {
-        Serial.println("EEPROM not properly initialized. fixing.");
+        Serial.println("EEPROM not properly initialized. Initializing now...");
         if (!initialize_eeprom())
         {
             Serial.println("Could not initialize EEPROM!");
@@ -250,7 +251,7 @@ void setup()
         }
         else
         {
-            Serial.println("Could not set sw locked");
+            Serial.println("Could not set lock in software");
             set_hardware_locked(false);
         }
     }
@@ -266,7 +267,7 @@ void setup()
     Serial.println(pwd);
 
     WiFi.softAPdisconnect(true);
-    if (!wifiManager.autoConnect("HTEK Lockbox"))
+    if (!wifiManager.autoConnect("EKI Lockbox"))
     {
         Serial.println("Failed to connect and hit timeout");
         delay(3000);
@@ -274,7 +275,7 @@ void setup()
         delay(5000);
     }
     server.begin();
-    digitalWrite(PINDEBUG, HIGH);
+    digitalWrite(PINDEBUGLEDPRIMARY, HIGH);
 
     const int mdns_name_len = 15;
     char mdns_name[mdns_name_len];
@@ -287,7 +288,7 @@ void setup()
     {
         Serial.println("mDNS responder started");
     }
-    MDNS.addService("hteklb", "tcp", TCP_PORT);
+    MDNS.addService("ekilb", "tcp", TCP_PORT);
 }
 
 void loop()

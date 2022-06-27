@@ -8,7 +8,7 @@ from zeroconf import *
 import argparse
 
 default_passwordfile = "./latestpassword.txt"
-mdns_type = '_hteklb._tcp.local.'
+mdns_type = '_ekilb._tcp.local.'
 devices = []
 device = ()
 
@@ -112,13 +112,13 @@ def retrieve_password(file):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Control the HTEK Lockbox')
+    parser = argparse.ArgumentParser(description='Control the EKI Lockbox')
     parser.add_argument('-a', '--action', dest='action',
                         choices=["lock", "unlock", "update", "getstatus"])
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file')
     parser.add_argument('-d', '--device-name', dest='device_name',
-                        help="e.g. 'lockbox_000000._hteklb._tcp.local.'")
+                        help="e.g. 'lockbox_000000._ekilb._tcp.local.'")
     args = parser.parse_args()
 
     global device

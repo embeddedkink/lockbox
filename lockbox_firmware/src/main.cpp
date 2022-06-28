@@ -10,16 +10,15 @@
 
 #define PINDEBUGLEDPRIMARY D1
 #define PINSERVO D4
+
 #define MAX_PASSWORD_LENGTH 64
 #define MAX_INCOMING_DATA_LENGTH 256
 #define TCP_PORT 5000
 #define INITSTRING "EKI_LOCKBOX"
-#define CAM_INVERTED false
-#define CAM_CLOSED 0
-#define CAM_OPEN 180
 #define EEPROM_STATE_ADDR 128
 #define EEPROM_PASSWORD_ADDR EEPROM_STATE_ADDR + sizeof(EEPROMStateObject)
 #define EEPROM_SIZE (EEPROM_STATE_ADDR + sizeof(EEPROMStateObject) + sizeof(EEPROMPasswordObject))
+#define MAX_BOX_NAME_LENGTH 32
 
 struct EEPROMStateObject
 {
@@ -30,6 +29,13 @@ struct EEPROMStateObject
 struct EEPROMPasswordObject
 {
     char password[MAX_PASSWORD_LENGTH];
+};
+
+struct EEPROMSettingsObject
+{
+    int camClosedPosition;
+    int camOpenPosition;
+    char lockboxName[MAX_BOX_NAME_LENGTH];
 };
 
 char incomingData[MAX_INCOMING_DATA_LENGTH] = {0};

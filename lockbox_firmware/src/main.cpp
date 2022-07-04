@@ -1,9 +1,9 @@
 #include <Arduino.h>
-#include <Servo.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <Servo.h>
+#include <WiFiClient.h>
 #include "ESP8266mDNS.h"
 
 // Due to improper compatibility this must happen in this order:
@@ -11,10 +11,8 @@
 #define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
 
-#define PINDEBUG D1
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64
-#define MAX_INCOMING_DATA_LENGTH 256
 #define TCP_PORT 5000
 #define INITSTRING "EKI_LOCKBOX"
 #define CAM_INVERTED false
@@ -35,13 +33,12 @@ struct EEPROMPasswordObject
     char password[MAX_PASSWORD_LENGTH];
 };
 
-char incomingData[MAX_INCOMING_DATA_LENGTH] = {0};
-uint8_t incomingDataIndex = 0;
 Servo myservo;
 WiFiManager wifiManager;
 WiFiClient client;
 AsyncWebServer server(TCP_PORT);
-StaticJsonDocument<MAX_INCOMING_DATA_LENGTH> jsonInput;
+
+// EEPROM related functions
 
 bool verify_eeprom_state_validity()
 {
@@ -73,6 +70,8 @@ bool initialize_eeprom()
         return false;
     }
 }
+
+// State manipulation
 
 bool set_software_locked(bool lock)
 {
@@ -138,49 +137,64 @@ void set_hardware_locked(bool lock)
     }
 }
 
+// Request handlers
+
 void action_lock(AsyncWebServerRequest *request)
 {
     if (get_is_locked())
     {
-        request->send(500, "text/plain", "already locked");
+        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
     }
-    const char *password = jsonInput["password"];
+    String password;
+    if (request->hasParam("password", true)) {
+        password = request->getParam("password", true)->value();
+    } else {
+        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        return;
+    }
+    // todo: check password length
     Serial.print("Locking with password: ");
     Serial.println(password);
-    set_password(password);
+    set_password(password.c_str());
     if (set_software_locked(true))
     {
         set_hardware_locked(true);
-        request->send(200, "text/plain", "success");
+        request->send(200, "application/json", "{\"result\":\"success\"}");
     }
     else
     {
-        request->send(500, "text/plain", "eeprom error");
+        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"eepromError\"}");
     }
 }
 
 void action_unlock(AsyncWebServerRequest *request)
 {
-    const char *password = jsonInput["password"];
+    String password;
+    if (request->hasParam("password", true)) {
+        password = request->getParam("password", true)->value();
+    } else {
+        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        return;
+    }
     Serial.print("Unlocking with password: ");
     Serial.println(password);
     char savedPassword[MAX_PASSWORD_LENGTH];
     get_password(savedPassword);
-    if (strcmp(savedPassword, password) == 0)
+    if (strcmp(savedPassword, password.c_str()) == 0)
     {
         set_hardware_locked(false);
         if (set_software_locked(false))
         {
-            request->send(200, "text/plain", "success");
+            request->send(200, "application/json", "{\"result\":\"success\"}");
         }
         else
         {
-            request->send(500, "text/plain", "eeprom error");
+            request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"eepromError\"}");
         }
     }
     else
     {
-        request->send(500, "text/plain", "wrong password");
+        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
     }
 }
 
@@ -194,23 +208,23 @@ void action_update(AsyncWebServerRequest *request)
     {
         set_hardware_locked(false);
     }
-    request->send(200, "text/plain", "success");
+    request->send(200, "application/json", "{\"result\":\"success\"}");
 }
 
 void action_status(AsyncWebServerRequest *request)
 {
     if (get_is_locked())
     {
-        request->send(200, "text/plain", "locked");
+        request->send(200, "application/json", "{\"result\":\"success\", \"data\":\"locked\"}");
     }
     else
     {
-        request->send(200, "text/plain", "unlocked");
+        request->send(200, "application/json", "{\"result\":\"success\", \"data\":\"unlocked\"}");
     }
 }
 
 void notFound(AsyncWebServerRequest *request) {
-    request->send(404, "text/plain", "Not found");
+    request->send(404, "application/json", "{\"result\":\"error\", \"error\":\"notFound\"}");
 }
 
 void setup()
@@ -219,8 +233,6 @@ void setup()
     delay(500);
     EEPROM.begin(EEPROM_SIZE);
     myservo.attach(PINSERVO);
-    pinMode(PINDEBUG, OUTPUT);
-    digitalWrite(PINDEBUG, HIGH);
 
     if (!verify_eeprom_state_validity())
     {
@@ -235,7 +247,7 @@ void setup()
     }
     else
     {
-        Serial.println("EEPROM valid");
+        Serial.println("\n\nEEPROM valid");
     }
 
     if (get_is_locked())
@@ -290,7 +302,6 @@ void setup()
     server.on("/update", HTTP_POST, action_update);
     server.on("/status", HTTP_GET, action_status);
     server.begin();
-    digitalWrite(PINDEBUG, LOW);
 }
 
 void loop()

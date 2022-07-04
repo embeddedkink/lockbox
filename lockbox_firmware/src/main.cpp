@@ -139,17 +139,24 @@ void set_hardware_locked(bool lock)
 
 // Request handlers
 
+void respond_json(AsyncWebServerRequest* request, int code, String jsonString)
+{
+    AsyncWebServerResponse *response = request->beginResponse(code, "application/json", jsonString);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+}
+
 void action_lock(AsyncWebServerRequest *request)
 {
     if (get_is_locked())
     {
-        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
     }
     String password;
     if (request->hasParam("password", true)) {
         password = request->getParam("password", true)->value();
     } else {
-        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
         return;
     }
     // todo: check password length
@@ -159,11 +166,11 @@ void action_lock(AsyncWebServerRequest *request)
     if (set_software_locked(true))
     {
         set_hardware_locked(true);
-        request->send(200, "application/json", "{\"result\":\"success\"}");
+        respond_json(request, 200, "{\"result\":\"success\"}");
     }
     else
     {
-        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"eepromError\"}");
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"eepromError\"}");
     }
 }
 
@@ -173,7 +180,7 @@ void action_unlock(AsyncWebServerRequest *request)
     if (request->hasParam("password", true)) {
         password = request->getParam("password", true)->value();
     } else {
-        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
         return;
     }
     Serial.print("Unlocking with password: ");
@@ -185,16 +192,16 @@ void action_unlock(AsyncWebServerRequest *request)
         set_hardware_locked(false);
         if (set_software_locked(false))
         {
-            request->send(200, "application/json", "{\"result\":\"success\"}");
+            respond_json(request, 200, "{\"result\":\"success\"}");
         }
         else
         {
-            request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"eepromError\"}");
+            respond_json(request, 500, "{\"result\":\"error\", \"error\":\"eepromError\"}");
         }
     }
     else
     {
-        request->send(500, "application/json", "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
     }
 }
 
@@ -208,23 +215,23 @@ void action_update(AsyncWebServerRequest *request)
     {
         set_hardware_locked(false);
     }
-    request->send(200, "application/json", "{\"result\":\"success\"}");
+    respond_json(request, 200, "{\"result\":\"success\"}");
 }
 
 void action_status(AsyncWebServerRequest *request)
 {
     if (get_is_locked())
     {
-        request->send(200, "application/json", "{\"result\":\"success\", \"data\":\"locked\"}");
+        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"locked\"}");
     }
     else
     {
-        request->send(200, "application/json", "{\"result\":\"success\", \"data\":\"unlocked\"}");
+        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"unlocked\"}");
     }
 }
 
 void notFound(AsyncWebServerRequest *request) {
-    request->send(404, "application/json", "{\"result\":\"error\", \"error\":\"notFound\"}");
+    respond_json(request, 404, "{\"result\":\"error\", \"error\":\"notFound\"}");
 }
 
 void setup()

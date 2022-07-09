@@ -1,5 +1,6 @@
 import argparse
 import json
+from PIL import Image, ImageDraw
 import requests
 import secrets
 import socket
@@ -7,7 +8,9 @@ import string
 import time
 from zeroconf import *
 
-default_passwordfile = "./latestpassword.txt"
+default_passwordfile_text = "./latestpassword.txt"
+default_passwordfile_image = "./latestpassword.png"
+default_password_file_mode = "text"
 mdns_type = '_ekilb._tcp.local.'
 devices = []
 host = ""
@@ -110,10 +113,18 @@ def find_devices():
     r.close()
 
 
-def save_password(password, file):
-    f = open(file, "w")
-    f.write(password)
-    f.close()
+def save_password(password, file, mode="text"):
+    if mode == "text":
+        f = open(file, "w")
+        f.write(password)
+        f.close()
+    elif mode == "image":
+        img = Image.new('RGB', (256, 50), color = (0, 0, 0))
+        d = ImageDraw.Draw(img)
+        d.text((20,20), password, fill=(255,255,255))
+        img.save(file)
+    else:
+        raise "Invalid password mode"
 
 
 def retrieve_password(file):
@@ -129,6 +140,7 @@ def main():
                         choices=["lock", "unlock", "update", "getstatus"])
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file')
+    parser.add_argument('-m', '--password-filemode', dest='password_file_mode')
     parser.add_argument('-d', '--device-name', dest='device_name',
                         help="e.g. 'lockbox_000000._ekilb._tcp.local.'")
     args = parser.parse_args()
@@ -150,23 +162,46 @@ def main():
                 exit(1)
         host = f'http://{d["address"]}:{d["port"]}'
 
+    if args.password_file_mode is not None:
+        password_file_mode = args.password_file_mode
+    else:
+        password_file_mode = default_password_file_mode
+
     if args.password_file is not None:
         password_file = args.password_file
     else:
-        password_file = default_passwordfile
+        if password_file_mode == "image":
+            password_file = default_passwordfile_image
+        elif password_file_mode == "text":
+            password_file = default_passwordfile_text
+        else:
+            raise "Could not pick correct file name"
+
 
     if args.action == "lock":
-        password = generate_password()
-        print(password)
-        save_password(password, password_file)
+        if args.password is not None:
+            password = args.password
+        else:
+            password = generate_password()
+        print(f'Password: {password}')
+        save_password(password, password_file, password_file_mode)
         if lock(password):
             print("Locked!")
         else:
             print("Could not lock")
     elif args.action == "unlock":
-        password = args.password
-        if password == None:
-            password = retrieve_password(password_file)
+        if password_file_mode != "text":
+            print("Only text mode is supported for unlocking")
+        
+        if args.password is not None:
+            password = args.password
+        else:
+            try:
+                password = retrieve_password(password_file)
+            except FileNotFoundError:
+                print("Could not unlock: file not found!")
+                password = ""
+
         if unlock(password):
             print("Unlocked!")
         else:

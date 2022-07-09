@@ -151,6 +151,7 @@ void action_lock(AsyncWebServerRequest *request)
     if (get_is_locked())
     {
         respond_json(request, 500, "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
+        return;
     }
     String password;
     if (request->hasParam("password", true)) {

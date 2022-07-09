@@ -45,4 +45,4 @@ Connect power to the microcontroller. Put the key into the empty partition of th
 - [ ] Add web-based controller
 - [X] Create a key compartment in the box
 - [X] Perform destructive tests on the box
-- [ ] Assess compatibility with other online keyholding platforms
+- [X] Assess compatibility with other online keyholding platforms (image mode)

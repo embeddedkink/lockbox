@@ -1,18 +1,20 @@
 #include <Arduino.h>
-#include <Servo.h>
-#include <WiFiManager.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <Servo.h>
+#include <WiFiClient.h>
 #include "ESP8266mDNS.h"
 
-#define PINDEBUG D1
+// Due to improper compatibility this must happen in this order:
+#include <WiFiManager.h>
+#define WEBSERVER_H
+#include <ESPAsyncWebServer.h>
+
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64
-#define MAX_INCOMING_DATA_LENGTH 256
 #define TCP_PORT 5000
-#define INITSTRING "HTEK_LOCKBOX"
+#define INITSTRING "EKI_LOCKBOX"
 #define CAM_INVERTED false
 #define CAM_CLOSED 0
 #define CAM_OPEN 180
@@ -31,13 +33,12 @@ struct EEPROMPasswordObject
     char password[MAX_PASSWORD_LENGTH];
 };
 
-char incomingData[MAX_INCOMING_DATA_LENGTH] = {0};
-uint8_t incomingDataIndex = 0;
 Servo myservo;
 WiFiManager wifiManager;
 WiFiClient client;
-WiFiServer server(TCP_PORT);
-StaticJsonDocument<MAX_INCOMING_DATA_LENGTH> jsonInput;
+AsyncWebServer server(TCP_PORT);
+
+// EEPROM related functions
 
 bool verify_eeprom_state_validity()
 {
@@ -69,6 +70,8 @@ bool initialize_eeprom()
         return false;
     }
 }
+
+// State manipulation
 
 bool set_software_locked(bool lock)
 {
@@ -134,86 +137,101 @@ void set_hardware_locked(bool lock)
     }
 }
 
-char *handleCommand(char *data)
+// Request handlers
+
+void respond_json(AsyncWebServerRequest* request, int code, String jsonString)
 {
-    DeserializationError error = deserializeJson(jsonInput, data);
-    if (error)
-    {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
-        return "{\"result\":\"failure\", \"error\":\"deserializationError\"}\n";
-    }
+    AsyncWebServerResponse *response = request->beginResponse(code, "application/json", jsonString);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+}
 
-    const char *command = jsonInput["command"];
+void action_lock(AsyncWebServerRequest *request)
+{
+    if (get_is_locked())
+    {
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
+    }
+    String password;
+    if (request->hasParam("password", true)) {
+        password = request->getParam("password", true)->value();
+    } else {
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        return;
+    }
+    // todo: check password length
+    Serial.print("Locking with password: ");
+    Serial.println(password);
+    set_password(password.c_str());
+    if (set_software_locked(true))
+    {
+        set_hardware_locked(true);
+        respond_json(request, 200, "{\"result\":\"success\"}");
+    }
+    else
+    {
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"eepromError\"}");
+    }
+}
 
-    if (strcmp(command, "lock") == 0)
+void action_unlock(AsyncWebServerRequest *request)
+{
+    String password;
+    if (request->hasParam("password", true)) {
+        password = request->getParam("password", true)->value();
+    } else {
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        return;
+    }
+    Serial.print("Unlocking with password: ");
+    Serial.println(password);
+    char savedPassword[MAX_PASSWORD_LENGTH];
+    get_password(savedPassword);
+    if (strcmp(savedPassword, password.c_str()) == 0)
     {
-        if (get_is_locked())
+        set_hardware_locked(false);
+        if (set_software_locked(false))
         {
-            return "{\"result\":\"failure\", \"error\":\"alreadyLocked\"}\n";
-        }
-        const char *password = jsonInput["password"];
-        Serial.print("Locking with password: ");
-        Serial.println(password);
-        set_password(password);
-        if (set_software_locked(true))
-        {
-            set_hardware_locked(true);
-            return "{\"result\": \"success\"}\n";
+            respond_json(request, 200, "{\"result\":\"success\"}");
         }
         else
         {
-            return "{\"result\":\"failure\", \"error\":\"EEPROM error\"}\n";
+            respond_json(request, 500, "{\"result\":\"error\", \"error\":\"eepromError\"}");
         }
     }
-    else if (strcmp(command, "unlock") == 0)
+    else
     {
-        const char *password = jsonInput["password"];
-        Serial.print("Unlocking with password: ");
-        Serial.println(password);
-        char savedPassword[MAX_PASSWORD_LENGTH];
-        get_password(savedPassword);
-        if (strcmp(savedPassword, password) == 0)
-        {
-            set_hardware_locked(false);
-            if (set_software_locked(false))
-            {
-                return "{\"result\":\"success\"}\n";
-            }
-            else
-            {
-                return "{\"result\":\"failure\", \"error\":\"EEPROM error\"}\n";
-            }
-        }
-        else
-        {
-            return "{\"result\":\"failure\", \"error\":\"wrongPassword\"}\n";
-        }
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
     }
-    else if (strcmp(command, "update") == 0)
+}
+
+void action_update(AsyncWebServerRequest *request)
+{
+    if (get_is_locked())
     {
-        if (get_is_locked())
-        {
-            set_hardware_locked(true);
-        }
-        else
-        {
-            set_hardware_locked(false);
-        }
-        return "{\"result\":\"success\"}\n";
+        set_hardware_locked(true);
     }
-    else if (strcmp(command, "status") == 0)
+    else
     {
-        if (get_is_locked())
-        {
-            return "{\"result\":\"success\", \"status\":\"locked\"}\n";
-        }
-        else
-        {
-            return "{\"result\":\"success\", \"status\":\"unlocked\"}\n";
-        }
+        set_hardware_locked(false);
     }
-    return "{\"result\":\"failure\", \"error\":\"invalidCommand\"}\n";
+    respond_json(request, 200, "{\"result\":\"success\"}");
+}
+
+void action_status(AsyncWebServerRequest *request)
+{
+    if (get_is_locked())
+    {
+        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"locked\"}");
+    }
+    else
+    {
+        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"unlocked\"}");
+    }
+}
+
+void notFound(AsyncWebServerRequest *request) {
+    respond_json(request, 404, "{\"result\":\"error\", \"error\":\"notFound\"}");
 }
 
 void setup()
@@ -222,8 +240,6 @@ void setup()
     delay(500);
     EEPROM.begin(EEPROM_SIZE);
     myservo.attach(PINSERVO);
-    pinMode(PINDEBUG, OUTPUT);
-    digitalWrite(PINDEBUG, LOW);
 
     if (!verify_eeprom_state_validity())
     {
@@ -238,7 +254,7 @@ void setup()
     }
     else
     {
-        Serial.println("EEPROM valid");
+        Serial.println("\n\nEEPROM valid");
     }
 
     if (get_is_locked())
@@ -266,15 +282,13 @@ void setup()
     Serial.println(pwd);
 
     WiFi.softAPdisconnect(true);
-    if (!wifiManager.autoConnect("HTEK Lockbox"))
+    if (!wifiManager.autoConnect("EKI Lockbox"))
     {
         Serial.println("Failed to connect and hit timeout");
         delay(3000);
         ESP.restart();
         delay(5000);
     }
-    server.begin();
-    digitalWrite(PINDEBUG, HIGH);
 
     const int mdns_name_len = 15;
     char mdns_name[mdns_name_len];
@@ -287,36 +301,16 @@ void setup()
     {
         Serial.println("mDNS responder started");
     }
-    MDNS.addService("hteklb", "tcp", TCP_PORT);
+    MDNS.addService("ekilb", "tcp", TCP_PORT);
+
+    server.onNotFound(notFound);
+    server.on("/lock", HTTP_POST, action_lock);
+    server.on("/unlock", HTTP_POST, action_unlock);
+    server.on("/update", HTTP_POST, action_update);
+    server.on("/status", HTTP_GET, action_status);
+    server.begin();
 }
 
 void loop()
 {
-
-    if (!client.connected())
-    {
-        client = server.available();
-    }
-    else
-    {
-        if (client.available() > 0)
-        {
-            if (client.peek() == '\n')
-            {
-                client.read();
-                incomingData[incomingDataIndex] = '\0';
-                client.write((handleCommand(incomingData)));
-                incomingDataIndex = 0;
-            }
-            else
-            {
-                incomingData[incomingDataIndex] = client.read();
-                incomingDataIndex++;
-                if (incomingDataIndex >= MAX_INCOMING_DATA_LENGTH - 1)
-                {
-                    incomingDataIndex = 0;
-                }
-            }
-        }
-    }
 }

@@ -107,7 +107,7 @@ def find_devices():
     listener = ServiceListener()
     browser = ServiceBrowser(r, mdns_type, listener=listener)
     for i in range(16):
-        if len(devices) > 0:
+        if len(devices) > 0: #TODO: Does this reliably return many valid lockboxes? 
             break
         time.sleep(0.5)
     r.close()
@@ -143,24 +143,30 @@ def main():
     parser.add_argument('-m', '--password-filemode', dest='password_file_mode')
     parser.add_argument('-d', '--device-name', dest='device_name',
                         help="e.g. 'lockbox_000000._ekilb._tcp.local.'")
+    parser.add_argument('--host-override', dest='host_override',
+                        help="e.g. 'http://192.168.0.1:5000'")
     args = parser.parse_args()
 
     global host
-    find_devices()
-    if (len(devices) == 0):
-        print("Error: no device in reach")
-        exit(1)
-    elif len(devices) > 1:
-        for d in devices:
-            if d["name"] == args.device_name:
-                host = f'http://{d["address"]}:{d["port"]}'
+
+    if args.host_override is None:
+        find_devices()
+        if (len(devices) == 0):
+            print("Error: no lockbox available")
+            exit(1)
+        elif len(devices) > 1:
+            for d in devices:
+                if d["name"] == args.device_name:
+                    host = f'http://{d["address"]}:{d["port"]}'
+        else:
+            d = devices[0]
+            if args.device_name is not None:
+                if d["name"] != args.device_name:
+                    print("Error: device name specified but not found")
+                    exit(1)
+            host = f'http://{d["address"]}:{d["port"]}'
     else:
-        d = devices[0]
-        if args.device_name is not None:
-            if d["name"] != args.device_name:
-                print("Error: device name specified but not found")
-                exit(1)
-        host = f'http://{d["address"]}:{d["port"]}'
+        host = args.host_override
 
     if args.password_file_mode is not None:
         password_file_mode = args.password_file_mode

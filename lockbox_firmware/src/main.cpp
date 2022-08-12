@@ -6,7 +6,7 @@
 #include <WiFiClient.h>
 #include "ESP8266mDNS.h"
 
-// Due to improper compatibility this must happen in this order:
+// Due to improper compatibility these 3 must happen in this order:
 #include <WiFiManager.h>
 #define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
@@ -138,8 +138,16 @@ bool set_password(const char *newPassword)
 bool get_is_locked()
 {
     EEPROMStateObject state;
+    state.locked = false;
     EEPROM.get(EEPROM_STATE_ADDR, state);
-    return state.locked; // TODO: investigate
+    if (state.locked)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void set_hardware_locked(bool lock)
@@ -249,9 +257,44 @@ void action_settings_get(AsyncWebServerRequest *request)
     respond_json(request, 200, buf);
 }
 
+// Currently only supports one attribute per request
 void action_settings_post(AsyncWebServerRequest *request)
 {
-    respond_json(request, 500, "{\"result\":\"error\", \"error\":\"notimplemented\"}");
+    EEPROMSettingsObject settings;
+    EEPROM.get(EEPROM_SETTINGS_ADDR, settings);
+    if (request->hasParam("name", true)) 
+    {
+        String name = request->getParam("name", true)->value();
+        if (name.length() <= MAX_NAME_LENGTH)
+        {
+            strcpy(settings.name, name.c_str());
+            EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+            EEPROM.commit();
+        }
+        else
+        {
+            respond_json(request, 500, "{\"result\":\"error\", \"error\":\"invalidParameter\"}");
+        }
+    } 
+    else if (request->hasParam("servo_open_position", true)) 
+    {
+        String newpos = request->getParam("servo_open_position", true)->value();
+        settings.servo_open_position = newpos.toInt();
+        EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+        EEPROM.commit();
+
+    } 
+    else if (request->hasParam("servo_closed_position", true)) 
+    {
+        String newpos = request->getParam("servo_closed_position", true)->value();
+        settings.servo_open_position = newpos.toInt();
+        EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+        EEPROM.commit();
+    } 
+    else 
+    {
+        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"invalidParameter\"}");
+    }
 }
 
 void notFound(AsyncWebServerRequest *request) {

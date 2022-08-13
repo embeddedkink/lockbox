@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+
 import argparse
 import json
 from PIL import Image, ImageDraw
@@ -12,12 +14,11 @@ default_passwordfile_text = "./latestpassword.txt"
 default_passwordfile_image = "./latestpassword.png"
 default_password_file_mode = "text"
 mdns_type = '_ekilb._tcp.local.'
-devices = []
-host = ""
 
 class ServiceListener(object):
     def __init__(self):
         self.r = Zeroconf()
+        self.devices = []
 
     def remove_service(self, zeroconf, type, name):
         pass
@@ -28,13 +29,13 @@ class ServiceListener(object):
             address = (socket.inet_ntoa(info.addresses[0]))
             port = info.port
             name = info.name
-            devices.append({"address": address, "port": port, "name": name})
+            self.devices.append({"address": address, "port": port, "name": name})
 
     def update_service(self):
         pass
 
 
-def send_command(cmd):
+def send_command(cmd, host):
     if cmd["command"] == "lock":
         response = requests.post(
             host+"/lock",
@@ -49,9 +50,9 @@ def send_command(cmd):
         response = requests.post(
             host+"/update"
         )
-    elif cmd["command"] == "status":
+    elif cmd["command"] == "settings":
         response = requests.get(
-            host+"/status"
+            host+"/settings"
         )
     
     return json.loads(response.content)
@@ -63,54 +64,59 @@ def generate_password():
     return password
 
 
-def lock(password):
+def lock(password, host):
     cmd = {}
     cmd["command"] = "lock"
     cmd["password"] = password
-    response = send_command(cmd)
+    response = send_command(cmd, host)
     if response['result'] == "success":
         return True
     else:
         return False
 
 
-def unlock(password):
+def unlock(password, host):
     cmd = {}
     cmd["command"] = "unlock"
     cmd["password"] = password
-    response = send_command(cmd)
+    response = send_command(cmd, host)
     if response['result'] == "success":
         return True
     else:
         return False
 
 
-def update():
+def update(host):
     cmd = {}
     cmd["command"] = "update"
-    response = send_command(cmd)
+    response = send_command(cmd, host)
     if response['result'] == "success":
         return True
     else:
         return False
 
 
-def get_status():
+def get_settings(host):
     cmd = {}
-    cmd["command"] = "status"
-    response = send_command(cmd)
-    return response["data"]
+    cmd["command"] = "settings"
+    response = send_command(cmd, host)
+    return json.dumps(response["data"])
 
 
-def find_devices():
+def find_devices(device_name = None):
     r = Zeroconf()
     listener = ServiceListener()
     browser = ServiceBrowser(r, mdns_type, listener=listener)
-    for i in range(16):
-        if len(devices) > 0: #TODO: Does this reliably return many valid lockboxes? 
-            break
-        time.sleep(0.5)
+    for i in range(5):
+        if len(listener.devices) > 0:
+            if device_name is not None:
+                if (any(d["name"] == device_name for d in listener.devices)):
+                    break
+            else:
+                break
+        time.sleep(1)
     r.close()
+    return listener.devices
 
 
 def save_password(password, file, mode="text"):
@@ -137,7 +143,7 @@ def retrieve_password(file):
 def main():
     parser = argparse.ArgumentParser(description='Control the EKI Lockbox')
     parser.add_argument('-a', '--action', dest='action',
-                        choices=["lock", "unlock", "update", "getstatus"])
+                        choices=["lock", "unlock", "update", "getsettings"])
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file')
     parser.add_argument('-m', '--password-filemode', dest='password_file_mode')
@@ -147,26 +153,36 @@ def main():
                         help="e.g. 'http://192.168.0.1:5000'")
     args = parser.parse_args()
 
-    global host
+    # HOST SELECTION
 
+    picked_host = ""
     if args.host_override is None:
-        find_devices()
-        if (len(devices) == 0):
-            print("Error: no lockbox available")
-            exit(1)
-        elif len(devices) > 1:
+        if args.device_name is None:
+            devices = find_devices()
+            if (len(devices) == 0):
+                print("Error: no lockbox available. Exiting.")
+                exit(1)
+            elif len(devices) == 1:
+                d = devices[0]
+                print(f"Found one device: {d['name']}")
+                picked_host = f'http://{d["address"]}:{d["port"]}'
+            elif len(devices > 1):
+                print("Error: too many devices. Select a specific one. Exiting.")
+                exit(1)
+        else:
+            devices = find_devices(args.device_name)
             for d in devices:
                 if d["name"] == args.device_name:
-                    host = f'http://{d["address"]}:{d["port"]}'
-        else:
-            d = devices[0]
-            if args.device_name is not None:
-                if d["name"] != args.device_name:
-                    print("Error: device name specified but not found")
-                    exit(1)
-            host = f'http://{d["address"]}:{d["port"]}'
+                    picked_host = f'http://{d["address"]}:{d["port"]}'
+            if picked_host == "":
+                print("Error: selected device not found. Exiting.")
+                exit(1)
+        
     else:
-        host = args.host_override
+        picked_host = args.host_override
+    print(f"Picked host {picked_host}")
+
+    # FILE SELECTION
 
     if args.password_file_mode is not None:
         password_file_mode = args.password_file_mode
@@ -183,6 +199,7 @@ def main():
         else:
             raise "Could not pick correct file name"
 
+    # ACTION SELECTION
 
     if args.action == "lock":
         if args.password is not None:
@@ -191,7 +208,7 @@ def main():
             password = generate_password()
         print(f'Password: {password}')
         save_password(password, password_file, password_file_mode)
-        if lock(password):
+        if lock(password, picked_host):
             print("Locked!")
         else:
             print("Could not lock")
@@ -208,17 +225,17 @@ def main():
                 print("Could not unlock: file not found!")
                 password = ""
 
-        if unlock(password):
+        if unlock(password, picked_host):
             print("Unlocked!")
         else:
             print("Could not unlock")
     elif args.action == "update":
-        if update():
+        if update(picked_host):
             print("updated succesfully")
         else:
             print("update failed")
-    else:
-        print("Current status is: " + get_status())
+    elif args.action == "getsettings":
+        print("Current settings are: " + get_settings(picked_host))
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@
 #define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
 
-#define FIRMWARE_VERSION "20220710"
+#define FIRMWARE_VERSION "20220813"
 
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64

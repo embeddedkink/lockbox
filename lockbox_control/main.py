@@ -2,12 +2,13 @@
 
 import argparse
 import json
-from PIL import Image, ImageDraw
 import requests
 import secrets
 import socket
 import string
 import time
+from PIL import Image, ImageDraw, ImageFont
+from sys import platform
 from zeroconf import *
 
 default_passwordfile_text = "./latestpassword.txt"
@@ -125,10 +126,26 @@ def save_password(password, file, mode="text"):
         f.write(password)
         f.close()
     elif mode == "image":
-        img = Image.new('RGB', (256, 50), color = (0, 0, 0))
+        image_height = 128
+        image_width = 512
+        margins = 32
+        img = Image.new('RGB', (image_width, image_height), color = (0, 0, 0))
         d = ImageDraw.Draw(img)
-        d.text((20,20), password, fill=(255,255,255))
+
+        if platform == "linux" or platform == "linux2":
+            font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", 28)
+        elif platform == "win32":
+            font = ImageFont.truetype("arial.ttf", 28)
+        else:
+            raise "Generating images only supported on linux and windows"
+
+        text_width, text_height = font.getsize(password)
+        if text_width > image_width - 2*margins:
+            raise "Password too long for image"
+
+        d.text((margins,margins), password, fill=(255,255,255), font=font)
         img.save(file)
+
     else:
         raise "Invalid password mode"
 

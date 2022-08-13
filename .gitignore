@@ -6,3 +6,5 @@ lockbox_control/latestpassword.txt
 *.deps
 *.stl
 *.generated.scad
+
+lockbox_control/latestpassword.png

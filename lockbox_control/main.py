@@ -160,7 +160,8 @@ def retrieve_password(file):
 def main():
     parser = argparse.ArgumentParser(description='Control the EKI Lockbox')
     parser.add_argument('-a', '--action', dest='action',
-                        choices=["lock", "unlock", "update", "getsettings"])
+                        choices=["lock", "unlock", "update", "getsettings"],
+                        required=True)
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file')
     parser.add_argument('-m', '--password-filemode', dest='password_file_mode')

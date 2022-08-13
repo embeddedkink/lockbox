@@ -38,5 +38,5 @@ To access the box more easily, enter the following commands.
 
 ```
 sudo chmod +x ./main.py
-sudo ln /path/to/main.py /usr/bin/lockboxcontrol
+sudo ln -s /path/to/main.py /usr/bin/lockboxcontrol
 ```

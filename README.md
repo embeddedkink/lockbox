@@ -18,6 +18,10 @@ The project has been designed to be as easy to set up as possible. Off the shelf
 - Based on common off-the-shelf (COTS) and 3d printed parts
 - Fully local system, no dependency on the cloud or telemetry collected
 
+## A note on updates
+
+The box can be updated manually but will not be seeking for the latest updates automatically. Updating the box is not hard, but requires some technical steps. An update utility is in the works. Until then, the version of the control software that matches the firmware of your lock box will be accessible in this repository.
+
 ## Setting up
 
 - Print, or have someone print the box, lid, and locking cam.
@@ -25,11 +29,18 @@ The project has been designed to be as easy to set up as possible. Off the shelf
 - Verify the tolerances of the locking mechanism with special attention for the ridges inside the cam that interface with the servo. If this interface is not solid, you can turn to superglue.
 - Flash the MCU.
 - Connect the servo to the MCU.
-- Power the MCU by providing voltage over the MCU's Vin and Gnd. (The box allows dupont cables to come out of the bottom)
+- Power the MCU by providing voltage over the MCU's Vin and Gnd. See the Power heading down below.
 - Connect to the box' wifi AP (Lockbox!), and have it connect to your network.
 - With the box still open, do a test run.
   - Lock the box.
   - Open the box with the password in the newly created txt file.
+
+## Power
+
+The box may draw 0.4 amps at 5 volts with the servo stalled according to real-world measurements. This should be easily handled by most modern USB devices.
+Note that some servos may not perform identically to ours, even if they're marketed as 9g SG90.
+
+The box allows dupont cables to come out of the bottom. You can power it with a female USB micro-b to dupont breakout board along with 2 dupont female to female wires; solder your own USB to dupont cable; or even 3d print a USB to dupont adapter.
 
 ## Recovering
 

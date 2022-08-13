@@ -33,3 +33,10 @@ You can now run the application:
 ```bash
 python3 main.py -a lock
 ```
+
+To access the box more easily, enter the following commands.
+
+```
+sudo chmod +x ./main.py
+sudo ln /path/to/main.py /usr/bin/lockboxcontrol
+```

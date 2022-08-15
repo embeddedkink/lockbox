@@ -71,6 +71,28 @@ module versiontext()
         }
 }
 
+module prism(l, w, h)
+{
+    polyhedron(
+        points=[[0,0,0], [l,0,0], [l,w,0], [0,w,0], [0,w,h], [l,w,h]],
+        faces=[[0,1,2,3],[5,4,3,2],[0,4,5,1],[0,3,4],[5,2,1]]
+        );
+}
+
+module wall_bulk(thickness, width, length)
+{
+    corner_width = 4;
+    translate([0,length/2,thickness/2])
+        cube([width-corner_width*2,length,thickness], center=true);
+    translate([width/2,0,0])
+        rotate([0,0,90])
+        prism(length,corner_width,thickness);
+
+    translate([-width/2,length,0])
+        rotate([0,0,-90])
+        prism(length,corner_width,thickness);
+}
+
 module box() //make me
 {
     union()
@@ -85,6 +107,21 @@ module box() //make me
                 // Cam bridge
                 translate([-0.5*box_size_x, -cam_bridge_height, 0])
                     cube([box_size_x, cam_bridge_height, outer_wall_thickness]);
+                // Bulk for aesthetics
+                bulk_length = box_size_y - lid_height + lid_thickness - lid_box_tolerance;
+                translate([0,box_size_y-bulk_length,0])
+                {
+                    rotate([0,180,0])
+                        wall_bulk(lid_thickness, box_size_x, bulk_length);
+                    translate([0,0,box_size_z])
+                        wall_bulk(lid_thickness, box_size_x, bulk_length);
+                    translate([box_size_x/2,0,box_size_z/2])    
+                        rotate([0,90,0])
+                        wall_bulk(lid_thickness, box_size_z, bulk_length);
+                    translate([-box_size_x/2,0,box_size_z/2])    
+                        rotate([0,-90,0])
+                        wall_bulk(lid_thickness, box_size_z, bulk_length);
+                }
             }
             // Slits for pins
             // todo: fix to proper width for if box becomes larger than board width
@@ -95,9 +132,6 @@ module box() //make me
             // Room for key
             translate([-(box_size_x-(pins_width*2+outer_wall_thickness*2+inner_wall_thickness*2))/2, 0, outer_wall_thickness+inner_wall_thickness+servo_thickness])
                 cube([box_size_x-(pins_width*2+outer_wall_thickness*2+inner_wall_thickness*2), box_size_y-outer_wall_thickness, box_size_z-outer_wall_thickness*2-inner_wall_thickness-servo_thickness]);
-            // Allow for bigger key
-            //translate([-(box_size_x-(wall_thickness*4))/2, 0, wall_thickness*2+servo_thickness])
-            //    cube([box_size_x-(wall_thickness*4), box_size_y-wall_thickness-board_length, box_size_z-wall_thickness*3-servo_thickness]);
             // Room for board, servo
             translate([-(box_size_x-(outer_wall_thickness*2))/2, 0, outer_wall_thickness])
                 cube([box_size_x-(outer_wall_thickness*2), box_size_y-outer_wall_thickness, servo_thickness]);

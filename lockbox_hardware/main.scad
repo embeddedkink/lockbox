@@ -34,6 +34,11 @@ box_size_x = outer_wall_thickness*2+board_width;
 box_size_z = outer_wall_thickness*2+full_pin_height;
 box_size_y = outer_wall_thickness+servo_height+board_length;
 
+// Logo placement
+logo_width = 6;
+logo_up = 10;
+logo_in = 8;
+
 // todo: calc openign for cam
 cam_slot_size = 16;
 
@@ -114,13 +119,11 @@ module box() //make me
             rotate([90,0,180])
                 versiontext();
             // Logo
-            logo_width = 12;
-            #translate([2,box_size_y,14])
+            #translate([logo_in,box_size_y-layer_height,logo_up])
             rotate([90,0,180])
-                // Hack:
-                scale([1,1,4])
-                scale([logo_width/64,logo_width/64,layer_height/255])
-                surface(file="eki-logo-simple.png", invert = true);
+                scale([logo_width/64,logo_width/64,1])
+                linear_extrude(layer_height)
+                import("logo.svg");
         }
         // Pins to keep servo in place
         for (i = [-1,1])

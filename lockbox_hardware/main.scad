@@ -7,14 +7,14 @@ full_pin_height = 25;
 cable_management_height = 10;
 
 servo_width = 23;
-servo_height = 30.5;
+servo_height = 32;
 servo_thickness = 12.5;
 servo_wings_width = 32.5;
 servo_wings_offset = 16.5;
 servo_wings_thickness = 2;
 cam_bridge_height = 1.8;
 
-cam_height = 3;
+cam_height = 1.5;
 
 // Other constants
 
@@ -58,8 +58,6 @@ module make() {
     box();
     translate([0,-lid_thickness,-lid_thickness-lid_box_tolerance])
         lid();
-    translate([0,-30,0])
-        cam();
 }
 
 module versiontext()
@@ -119,7 +117,7 @@ module box() //make me
             rotate([90,0,180])
                 versiontext();
             // Logo
-            #translate([logo_in,box_size_y-layer_height,logo_up])
+            translate([logo_in,box_size_y-layer_height,logo_up])
             rotate([90,0,180])
                 scale([logo_width/64,logo_width/64,1])
                 linear_extrude(layer_height)
@@ -170,37 +168,5 @@ module lid() //make me
         translate([0, layer_height, 8])
         #rotate([90,0,0])
             versiontext();
-    }
-}
-
-module cam() //make me
-{
-    cam_hole_diameter = 5;
-    cam_teeth_cube_size = 0.5;
-    cam_teeth_count = 22;
-    cam_servo_tolerance = 0.3;
-    cam_height_extra_tolerance = 0.5;
-
-    acutal_cam_hole_diameter = cam_hole_diameter + cam_servo_tolerance*2;
-    cam_teeth_length = sqrt((cam_teeth_cube_size*cam_teeth_cube_size)*2);
-    cam_outer_diameter = servo_thickness-lid_box_tolerance;
-    union()
-    {
-        difference()
-        {
-            hull(){
-                cylinder(h=cam_height-cam_height_extra_tolerance, r=cam_outer_diameter/2);
-                translate([0,cam_outer_diameter/2,0])
-                    cylinder(h=cam_height-cam_height_extra_tolerance, r=outer_wall_thickness*2);
-            }
-            cylinder(h=cam_height-cam_height_extra_tolerance, r=acutal_cam_hole_diameter/2);
-        }
-        for (a = [0:360/cam_teeth_count:360])
-        {
-            rotate([0,0,a])
-            translate([0,acutal_cam_hole_diameter/2 - cam_teeth_length/2,0])
-            rotate([0,0,45])
-            cube([cam_teeth_cube_size,cam_teeth_cube_size,cam_height-cam_height_extra_tolerance]);
-        }
     }
 }

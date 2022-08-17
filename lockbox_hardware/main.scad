@@ -30,17 +30,17 @@ bridging_tolerance = 0.8;
 
 // inter-component calculations
 
-box_size_x = outer_wall_thickness*2+board_width;
-box_size_z = outer_wall_thickness*2+full_pin_height;
-box_size_y = outer_wall_thickness+servo_height+board_length;
+box_size_x = outer_wall_thickness * 2 + board_width;
+box_size_z = outer_wall_thickness * 2 + full_pin_height;
+box_size_y = outer_wall_thickness + servo_height+board_length;
 
-lid_body_x = box_size_x+2*lid_thickness;
+lid_body_x = box_size_x + 2 * lid_thickness;
 lid_body_y = lid_height;
-lid_body_z = box_size_z+3*lid_thickness;
+lid_body_z = box_size_z + 3 * lid_thickness;
 
-lid_body_hollow_x = box_size_x+lid_box_tolerance*2;
-lid_body_hollow_y = lid_height-lid_thickness;
-lid_body_hollow_z = box_size_z+2*lid_box_tolerance;
+lid_body_hollow_x = box_size_x + lid_box_tolerance * 2;
+lid_body_hollow_y = lid_height - lid_thickness;
+lid_body_hollow_z = box_size_z + 2 * lid_box_tolerance;
 
 // Logo placement
 logo_width = 6;
@@ -67,7 +67,7 @@ make();
 module make() {
     box();
     translate([0,-30,0])
-    translate([0,-lid_thickness,-lid_thickness-lid_box_tolerance])
+    translate([0, -lid_thickness, -lid_thickness-lid_box_tolerance])
         lid();
 }
 
@@ -88,8 +88,8 @@ module servo_fit_model() // make me
     intersection()
     {
         box();
-        translate([-box_size_x/2,-cam_bridge_height,0])
-            cube([box_size_x,lid_height+lid_thickness+lid_box_tolerance+cam_bridge_height,box_size_z]);
+        translate([-box_size_x/2, -cam_bridge_height, 0])
+            cube([box_size_x, lid_height+lid_thickness+lid_box_tolerance+cam_bridge_height, box_size_z]);
     }
 }
 
@@ -102,14 +102,6 @@ module versiontext()
             text(text="V  ", size = 4, font="Liberation:style=Narrow");
         text(text=model_version, size = 4, font="Liberation:style=Narrow");
         }
-}
-
-module prism(l, w, h)
-{
-    polyhedron(
-        points=[[0,0,0], [l,0,0], [l,w,0], [0,w,0], [0,w,h], [l,w,h]],
-        faces=[[0,1,2,3],[5,4,3,2],[0,4,5,1],[0,3,4],[5,2,1]]
-        );
 }
 
 module box()
@@ -128,14 +120,14 @@ module box()
                     cube([box_size_x, cam_bridge_height, outer_wall_thickness]);
                 // Bulk for aesthetics
                 bulk_length = box_size_y - lid_height + lid_thickness - lid_box_tolerance;
-                translate([0,box_size_y-bulk_length,0])
-                    translate([-lid_body_x/2,0,-lid_thickness*2-lid_box_tolerance])
+                translate([0, box_size_y-bulk_length, 0])
+                    translate([-lid_body_x/2, 0, -lid_thickness*2-lid_box_tolerance])
                     cube([lid_body_x, bulk_length, lid_body_z]);
             }
             // Slits for pins
             // todo: fix to proper width for if box becomes larger than board width
             for (i = [-1, 1])
-                translate([i*((box_size_x-(outer_wall_thickness*2))/2 - pins_width/2),0,0])
+                translate([i*((box_size_x-(outer_wall_thickness*2))/2 - pins_width/2), 0, 0])
                 translate([-0.5*pins_width, 0, outer_wall_thickness])
                     cube([pins_width, box_size_y-outer_wall_thickness, box_size_z-2*outer_wall_thickness]);
             // Room for key
@@ -174,7 +166,7 @@ module box()
             translate([i*(box_size_x/2)-i*outer_wall_thickness/2,
                 wings_len - outer_wall_thickness,
                 outer_wall_thickness+servo_thickness/2-outer_wall_thickness/2])
-            translate([-outer_wall_thickness/2,0,0])
+            translate([-outer_wall_thickness/2, 0, 0])
             cube([outer_wall_thickness, servo_wings_thickness, outer_wall_thickness]);
         }
     }
@@ -184,26 +176,28 @@ module lid()
 {
     difference()
     {
-        translate([-lid_body_x/2,0,-lid_thickness])
+        translate([-lid_body_x/2, 0, -lid_thickness])
             cube([lid_body_x, lid_body_y, lid_body_z]);
         
-        translate([-lid_body_hollow_x/2,lid_thickness,lid_thickness])
+        translate([-lid_body_hollow_x/2, lid_thickness,lid_thickness])
             cube([lid_body_hollow_x, lid_body_hollow_y, lid_body_hollow_z]);
         
         // Cam bridge slit
-        translate([-(box_size_x+lid_box_tolerance*2)/2,0,lid_thickness])
+        translate([-(box_size_x+lid_box_tolerance*2)/2, 0, lid_thickness])
             cube([box_size_x+lid_box_tolerance*2, lid_thickness, lid_thickness+2*lid_box_tolerance]);
         
         // Slit for cam
-        translate([-(box_size_x+lid_box_tolerance*2)/2,lid_thickness,0])
+        translate([-(box_size_x+lid_box_tolerance*2)/2, lid_thickness, 0])
             cube([box_size_x+lid_box_tolerance*2, cam_height+bridging_tolerance, lid_thickness+2*lid_box_tolerance]);
         
         // Slits for servo wings
-        translate([-(box_size_x+lid_thickness*2)/2,lid_thickness+(servo_height-servo_wings_offset)-servo_wings_thickness,lid_thickness+lid_box_tolerance+outer_wall_thickness])
+        translate([-(box_size_x+lid_thickness*2)/2,
+            lid_thickness+(servo_height-servo_wings_offset)-servo_wings_thickness,
+            lid_thickness+lid_box_tolerance+outer_wall_thickness])
             cube([box_size_x+lid_thickness*2, lid_height-lid_thickness-(servo_height-servo_wings_offset)+servo_wings_thickness, servo_thickness+2*lid_box_tolerance]);
 
         translate([0, layer_height, 8])
-        #rotate([90,0,0])
+            rotate([90,0,0])
             versiontext();
     }
 }

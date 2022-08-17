@@ -34,6 +34,14 @@ box_size_x = outer_wall_thickness*2+board_width;
 box_size_z = outer_wall_thickness*2+full_pin_height;
 box_size_y = outer_wall_thickness+servo_height+board_length;
 
+lid_body_x = box_size_x+2*lid_thickness;
+lid_body_y = lid_height;
+lid_body_z = box_size_z+3*lid_thickness;
+
+lid_body_hollow_x = box_size_x+lid_box_tolerance*2;
+lid_body_hollow_y = lid_height-lid_thickness;
+lid_body_hollow_z = box_size_z+2*lid_box_tolerance;
+
 // Logo placement
 logo_width = 6;
 logo_up = 10;
@@ -44,7 +52,7 @@ cam_slot_size = 16;
 
 // Generation constants
 
-MODELVER = "OOB";
+MODELVER = "000000";
 
 FN = 32;
 
@@ -54,20 +62,45 @@ $fn=FN;
 model_version = MODELVER;
 make();
 
+// Preview inside OpenSCAD editor
+
 module make() {
     box();
+    translate([0,-30,0])
     translate([0,-lid_thickness,-lid_thickness-lid_box_tolerance])
         lid();
+}
+
+// Make targets
+// Rotates so they're the right way around for printing
+
+module box_model() // make me
+{
+    rotate([-90,0,0]) box();
+}
+module lid_model() // make me
+{
+    rotate([90,0,0]) lid();
+}
+module servo_fit_model() // make me
+{
+    rotate([-90,0,0]) 
+    intersection()
+    {
+        box();
+        translate([-box_size_x/2,-cam_bridge_height,0])
+            cube([box_size_x,lid_height+lid_thickness+lid_box_tolerance+cam_bridge_height,box_size_z]);
+    }
 }
 
 module versiontext()
 {
     linear_extrude(layer_height)
-    translate([-6,6,0])
+    translate([-8,5,0])
         union(){
-        translate([-6,0,0])
-            text(text="V: ", size = 4, font="Manjari:style=Thin");
-        text(text=model_version, size = 4, font="Manjari:style=Thin");
+        translate([-5,0,0])
+            text(text="V  ", size = 4, font="Liberation:style=Narrow");
+        text(text=model_version, size = 4, font="Liberation:style=Narrow");
         }
 }
 
@@ -79,21 +112,7 @@ module prism(l, w, h)
         );
 }
 
-module wall_bulk(thickness, width, length)
-{
-    corner_width = 4;
-    translate([0,length/2,thickness/2])
-        cube([width-corner_width*2,length,thickness], center=true);
-    translate([width/2,0,0])
-        rotate([0,0,90])
-        prism(length,corner_width,thickness);
-
-    translate([-width/2,length,0])
-        rotate([0,0,-90])
-        prism(length,corner_width,thickness);
-}
-
-module box() //make me
+module box()
 {
     union()
     {
@@ -110,18 +129,8 @@ module box() //make me
                 // Bulk for aesthetics
                 bulk_length = box_size_y - lid_height + lid_thickness - lid_box_tolerance;
                 translate([0,box_size_y-bulk_length,0])
-                {
-                    rotate([0,180,0])
-                        wall_bulk(lid_thickness*2, box_size_x, bulk_length);
-                    translate([0,0,box_size_z])
-                        wall_bulk(lid_thickness, box_size_x, bulk_length);
-                    translate([box_size_x/2,0,box_size_z/2])    
-                        rotate([0,90,0])
-                        wall_bulk(lid_thickness, box_size_z, bulk_length);
-                    translate([-box_size_x/2,0,box_size_z/2])    
-                        rotate([0,-90,0])
-                        wall_bulk(lid_thickness, box_size_z, bulk_length);
-                }
+                    translate([-lid_body_x/2,0,-lid_thickness*2-lid_box_tolerance])
+                    cube([lid_body_x, bulk_length, lid_body_z]);
             }
             // Slits for pins
             // todo: fix to proper width for if box becomes larger than board width
@@ -171,21 +180,15 @@ module box() //make me
     }
 }
 
-module lid() //make me
+module lid()
 {
     difference()
     {
-        body_x = box_size_x+2*lid_thickness;
-        body_y = lid_height;
-        body_z = box_size_z+3*lid_thickness;
-        translate([-body_x/2,0,-lid_thickness])
-            cube([body_x, body_y, body_z]);
+        translate([-lid_body_x/2,0,-lid_thickness])
+            cube([lid_body_x, lid_body_y, lid_body_z]);
         
-        body_hollow_x = box_size_x+lid_box_tolerance*2;
-        body_hollow_y = lid_height-lid_thickness;
-        body_hollow_z = box_size_z+2*lid_box_tolerance;
-        translate([-body_hollow_x/2,lid_thickness,lid_thickness])
-            cube([body_hollow_x, body_hollow_y, body_hollow_z]);
+        translate([-lid_body_hollow_x/2,lid_thickness,lid_thickness])
+            cube([lid_body_hollow_x, lid_body_hollow_y, lid_body_hollow_z]);
         
         // Cam bridge slit
         translate([-(box_size_x+lid_box_tolerance*2)/2,0,lid_thickness])

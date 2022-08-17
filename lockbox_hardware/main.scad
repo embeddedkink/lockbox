@@ -112,7 +112,7 @@ module box() //make me
                 translate([0,box_size_y-bulk_length,0])
                 {
                     rotate([0,180,0])
-                        wall_bulk(lid_thickness, box_size_x, bulk_length);
+                        wall_bulk(lid_thickness*2, box_size_x, bulk_length);
                     translate([0,0,box_size_z])
                         wall_bulk(lid_thickness, box_size_x, bulk_length);
                     translate([box_size_x/2,0,box_size_z/2])    

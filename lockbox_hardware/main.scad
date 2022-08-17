@@ -22,8 +22,8 @@ inner_wall_thickness = 1.2;
 outer_wall_thickness = 1.8;
 
 lid_thickness = 1.8;
-lid_height = 24;
 lid_box_tolerance = 0.3;
+lid_height = servo_height-(servo_wings_offset-servo_wings_thickness)-lid_box_tolerance;
 
 layer_height = 0.32;
 bridging_tolerance = 0.8;

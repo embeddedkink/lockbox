@@ -3,7 +3,7 @@
 board_width = 26;
 board_length = 50;
 pins_width = 3;
-full_pin_height = 25;
+full_pin_height = 26;
 cable_management_height = 10;
 
 servo_width = 23;

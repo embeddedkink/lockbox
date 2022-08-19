@@ -12,6 +12,7 @@ servo_thickness = 12.5;
 servo_wings_width = 32.5;
 servo_wings_offset = 16.5; // Bottom of servo till bottom of wings
 servo_wings_thickness = 2;
+servo_wing_hole_diameter = 2.2;
 
 cam_height = 1.5;
 
@@ -114,6 +115,8 @@ module versiontext()
 
 module box()
 {
+    fully_enclosed_length = outer_wall_thickness+board_length+servo_wings_offset;
+    partially_enclosed_length = box_size_y - fully_enclosed_length; // Where the box has to be open for the servo wings
     union()
     {
         difference()
@@ -127,13 +130,12 @@ module box()
                 translate([-0.5*box_size_x, -cam_bridge_height, 0])
                     cube([box_size_x, cam_bridge_height, outer_wall_thickness]);
                 // Bulk for aesthetics
-                bulk_length = box_size_y - lid_height + lid_thickness;
+                bulk_length = fully_enclosed_length;
                 translate([0, box_size_y-bulk_length, 0])
                     translate([-lid_body_x/2, 0, -lid_thickness*2])
                     cube([lid_body_x, bulk_length, lid_body_z]);
             }
             // Slits for pins
-            // TODO: fix to proper width for if box becomes larger than board width
             for (i = [-1, 1])
                 translate([i*((box_size_x-(outer_wall_thickness*2))/2 - pins_width/2), 0, 0])
                 translate([-0.5*pins_width, 0, outer_wall_thickness])
@@ -145,10 +147,8 @@ module box()
             translate([-(box_size_x-(outer_wall_thickness*2))/2, 0, outer_wall_thickness])
                 cube([box_size_x-(outer_wall_thickness*2), box_size_y-outer_wall_thickness, servo_thickness]);
             // Slits for servo wings
-            non_wings_len = outer_wall_thickness+board_length+servo_wings_offset;
-            wings_len = box_size_y - non_wings_len;
             translate([-(box_size_x)/2, 0, outer_wall_thickness])
-                cube([box_size_x, wings_len, servo_thickness]);
+                cube([box_size_x, partially_enclosed_length, servo_thickness]);
             // Cam opening
             translate([-cam_slot_size/2, -bridging_tolerance, 0])
                 cube([cam_slot_size, cam_height+bridging_tolerance, outer_wall_thickness]);
@@ -175,13 +175,11 @@ module box()
         // Pins to keep servo in place
         for (i = [-1,1])
         {
-            non_wings_len = outer_wall_thickness+board_length+servo_wings_offset;
-            wings_len = box_size_y - non_wings_len;
-            translate([i*(box_size_x/2)-i*outer_wall_thickness/2,
-                wings_len - outer_wall_thickness,
-                outer_wall_thickness+servo_thickness/2-outer_wall_thickness/2])
-            translate([-outer_wall_thickness/2, 0, 0])
-            cube([outer_wall_thickness, servo_wings_thickness, outer_wall_thickness]);
+            translate([i*((box_size_x/2)-outer_wall_thickness)+i*servo_wing_hole_diameter/2,
+                partially_enclosed_length-servo_wings_thickness,
+                outer_wall_thickness+servo_thickness/2-servo_wing_hole_diameter/2])
+                    translate([-servo_wing_hole_diameter/2, 0, 0])
+                    cube([servo_wing_hole_diameter, servo_wings_thickness, servo_wing_hole_diameter]);
         }
     }
 }

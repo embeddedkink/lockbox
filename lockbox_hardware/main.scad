@@ -11,7 +11,7 @@ servo_height = 32;
 servo_thickness = 12.5;
 servo_wings_width = 32.5;
 servo_wings_offset = 16.5; // Bottom of servo till bottom of wings
-servo_wings_thickness = 2;
+servo_wings_thickness = 2.5;
 servo_wing_hole_diameter = 2.2;
 
 cam_height = 1.5;
@@ -22,8 +22,8 @@ inner_wall_thickness = 1.2;
 outer_wall_thickness = 1.2;
 
 lid_thickness = 1.8;
-lid_box_tolerance = 0.3;
-lid_height = servo_height-(servo_wings_offset-servo_wings_thickness)-lid_box_tolerance; // TODO: is tolerance neccesary here?
+lid_box_tolerance = 0.1;
+lid_height = servo_height-(servo_wings_offset-servo_wings_thickness);
 
 layer_height = 0.32;
 bridging_tolerance = 0.8;

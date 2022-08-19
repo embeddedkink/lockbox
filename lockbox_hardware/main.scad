@@ -10,25 +10,26 @@ servo_width = 23;
 servo_height = 32;
 servo_thickness = 12.5;
 servo_wings_width = 32.5;
-servo_wings_offset = 16.5;
+servo_wings_offset = 16.5; // Bottom of servo till bottom of wings
 servo_wings_thickness = 2;
-cam_bridge_height = 1.8;
 
 cam_height = 1.5;
 
 // Other constants
 
 inner_wall_thickness = 1.2;
-outer_wall_thickness = 1.8;
+outer_wall_thickness = 1.2;
 
 lid_thickness = 1.8;
 lid_box_tolerance = 0.3;
-lid_height = servo_height-(servo_wings_offset-servo_wings_thickness)-lid_box_tolerance;
+lid_height = servo_height-(servo_wings_offset-servo_wings_thickness)-lid_box_tolerance; // TODO: is tolerance neccesary here?
 
 layer_height = 0.32;
 bridging_tolerance = 0.8;
 
 // inter-component calculations
+
+cam_bridge_height = lid_thickness;
 
 box_size_x = outer_wall_thickness * 2 + board_width;
 box_size_z = outer_wall_thickness * 2 + full_pin_height;
@@ -39,13 +40,18 @@ lid_body_y = lid_height;
 lid_body_z = box_size_z + 3 * lid_thickness;
 
 lid_body_hollow_x = box_size_x + lid_box_tolerance * 2;
-lid_body_hollow_y = lid_height - lid_thickness;
-lid_body_hollow_z = box_size_z + 2 * lid_box_tolerance;
+lid_body_hollow_y = lid_height + lid_box_tolerance - lid_thickness;
+lid_body_hollow_z = box_size_z + lid_box_tolerance * 2;
 
 // Logo placement
 logo_width = 6;
 logo_up = 10;
 logo_in = 8;
+
+// Inscription
+sidewall_text = "   EKI";
+sidewall_text_height = 10;
+sidewall_text_depth = 0.2;
 
 // todo: calc openign for cam
 cam_slot_size = 16;
@@ -66,7 +72,7 @@ make();
 
 module make() {
     box();
-    translate([0,-30,0])
+    translate([0,-40,0])
     translate([0, -lid_thickness, -lid_thickness-lid_box_tolerance])
         lid();
 }
@@ -78,18 +84,20 @@ module box_model() // make me
 {
     rotate([-90,0,0]) box();
 }
+
 module lid_model() // make me
 {
     rotate([90,0,0]) lid();
 }
+
 module servo_fit_model() // make me
 {
     rotate([-90,0,0]) 
     intersection()
     {
         box();
-        translate([-box_size_x/2, -cam_bridge_height, 0])
-            cube([box_size_x, lid_height+lid_thickness+lid_box_tolerance+cam_bridge_height, box_size_z]);
+        translate([-lid_body_x/2, -cam_bridge_height, -((lid_body_z-box_size_z)/3)*2-lid_box_tolerance])
+            cube([lid_body_x, lid_height+lid_thickness+lid_box_tolerance+cam_bridge_height, lid_body_z]);
     }
 }
 
@@ -119,13 +127,13 @@ module box()
                 translate([-0.5*box_size_x, -cam_bridge_height, 0])
                     cube([box_size_x, cam_bridge_height, outer_wall_thickness]);
                 // Bulk for aesthetics
-                bulk_length = box_size_y - lid_height + lid_thickness - lid_box_tolerance;
+                bulk_length = box_size_y - lid_height + lid_thickness;
                 translate([0, box_size_y-bulk_length, 0])
-                    translate([-lid_body_x/2, 0, -lid_thickness*2-lid_box_tolerance])
+                    translate([-lid_body_x/2, 0, -lid_thickness*2])
                     cube([lid_body_x, bulk_length, lid_body_z]);
             }
             // Slits for pins
-            // todo: fix to proper width for if box becomes larger than board width
+            // TODO: fix to proper width for if box becomes larger than board width
             for (i = [-1, 1])
                 translate([i*((box_size_x-(outer_wall_thickness*2))/2 - pins_width/2), 0, 0])
                 translate([-0.5*pins_width, 0, outer_wall_thickness])
@@ -157,6 +165,12 @@ module box()
                 scale([logo_width/64,logo_width/64,1])
                 linear_extrude(layer_height)
                 import("logo.svg");
+            // Sidewall inscription
+            translate([-sidewall_text_height/2, lid_body_y, -lid_thickness*2]) 
+                mirror([1,0,0])
+                rotate([0,0,90])
+                linear_extrude(height=sidewall_text_depth)
+                text(sidewall_text, size=sidewall_text_height);
         }
         // Pins to keep servo in place
         for (i = [-1,1])
@@ -184,17 +198,17 @@ module lid()
         
         // Cam bridge slit
         translate([-(box_size_x+lid_box_tolerance*2)/2, 0, lid_thickness])
-            cube([box_size_x+lid_box_tolerance*2, lid_thickness, lid_thickness+2*lid_box_tolerance]);
+            cube([box_size_x+lid_box_tolerance*2, lid_thickness, outer_wall_thickness+2*lid_box_tolerance]);
         
         // Slit for cam
-        translate([-(box_size_x+lid_box_tolerance*2)/2, lid_thickness, 0])
-            cube([box_size_x+lid_box_tolerance*2, cam_height+bridging_tolerance, lid_thickness+2*lid_box_tolerance]);
+        translate([-(box_size_x+lid_box_tolerance*2)/2, lid_thickness, -lid_box_tolerance])
+            cube([box_size_x+lid_box_tolerance*2, cam_height+bridging_tolerance, lid_thickness+lid_box_tolerance]);
         
         // Slits for servo wings
-        translate([-(box_size_x+lid_thickness*2)/2,
+        translate([-lid_body_x/2,
             lid_thickness+(servo_height-servo_wings_offset)-servo_wings_thickness,
             lid_thickness+lid_box_tolerance+outer_wall_thickness])
-            cube([box_size_x+lid_thickness*2, lid_height-lid_thickness-(servo_height-servo_wings_offset)+servo_wings_thickness, servo_thickness+2*lid_box_tolerance]);
+            cube([lid_body_x, lid_height-lid_thickness-(servo_height-servo_wings_offset)+servo_wings_thickness, servo_thickness+2*lid_box_tolerance]);
 
         translate([0, layer_height, 8])
             rotate([90,0,0])

@@ -6,21 +6,26 @@
 #include <WiFiClient.h>
 #include "ESP8266mDNS.h"
 
-// Due to improper compatibility this must happen in this order:
+// Due to improper compatibility these 3 must happen in this order:
 #include <WiFiManager.h>
 #define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
 
+#define FIRMWARE_VERSION "20220813"
+
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64
+#define MAX_NAME_LENGTH 32
 #define TCP_PORT 5000
 #define INITSTRING "EKI_LOCKBOX"
-#define CAM_INVERTED false
-#define CAM_CLOSED 0
-#define CAM_OPEN 180
 #define EEPROM_STATE_ADDR 128
 #define EEPROM_PASSWORD_ADDR EEPROM_STATE_ADDR + sizeof(EEPROMStateObject)
-#define EEPROM_SIZE (EEPROM_STATE_ADDR + sizeof(EEPROMStateObject) + sizeof(EEPROMPasswordObject))
+#define EEPROM_SETTINGS_ADDR EEPROM_PASSWORD_ADDR + sizeof(EEPROMPasswordObject)
+#define EEPROM_SIZE (EEPROM_STATE_ADDR + sizeof(EEPROMStateObject) + sizeof(EEPROMPasswordObject) + sizeof(EEPROMSettingsObject))
+#define DEFAULT_SERVO_OPEN_POSITION 180
+#define DEFAULT_SERVO_CLOSED_POSITION 0
+    // TODO: add unique id to default box name?
+#define DEFAULT_BOX_NAME "EKILB"
 
 struct EEPROMStateObject
 {
@@ -31,6 +36,13 @@ struct EEPROMStateObject
 struct EEPROMPasswordObject
 {
     char password[MAX_PASSWORD_LENGTH];
+};
+
+struct EEPROMSettingsObject
+{
+    char name[MAX_NAME_LENGTH];
+    int servo_closed_position;
+    int servo_open_position;
 };
 
 Servo myservo;
@@ -59,6 +71,13 @@ bool initialize_eeprom()
     state.locked = false;
     strcpy(state.initstring, INITSTRING);
     EEPROM.put(EEPROM_STATE_ADDR, state);
+
+    EEPROMSettingsObject settings;
+    settings.servo_closed_position = DEFAULT_SERVO_CLOSED_POSITION;
+    settings.servo_open_position = DEFAULT_SERVO_OPEN_POSITION;
+    strcpy(settings.name, DEFAULT_BOX_NAME);
+    EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+
     if (EEPROM.commit())
     {
         Serial.println("init eeprom committed");
@@ -120,20 +139,30 @@ bool set_password(const char *newPassword)
 bool get_is_locked()
 {
     EEPROMStateObject state;
+    state.locked = false;
     EEPROM.get(EEPROM_STATE_ADDR, state);
-    return state.locked; // TODO: investigate
+    if (state.locked)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void set_hardware_locked(bool lock)
 {
-    bool new_state = CAM_INVERTED ^ lock;
-    if (new_state)
+    // Can be optimized but setting lock is infrequent anyway
+    EEPROMSettingsObject settings;
+    EEPROM.get(EEPROM_SETTINGS_ADDR, settings);
+    if (lock)
     {
-        myservo.write(CAM_CLOSED);
+        myservo.write(settings.servo_closed_position);
     }
     else
     {
-        myservo.write(CAM_OPEN);
+        myservo.write(settings.servo_open_position);
     }
 }
 
@@ -150,17 +179,21 @@ void action_lock(AsyncWebServerRequest *request)
 {
     if (get_is_locked())
     {
-        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"alreadyLocked\"}");
         return;
     }
     String password;
     if (request->hasParam("password", true)) {
         password = request->getParam("password", true)->value();
     } else {
-        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"noPassword\"}");
         return;
     }
-    // todo: check password length
+    if (password.length() >= MAX_PASSWORD_LENGTH -1)
+    {
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"longPassword\"}");
+        return;
+    }
     Serial.print("Locking with password: ");
     Serial.println(password);
     set_password(password.c_str());
@@ -181,7 +214,7 @@ void action_unlock(AsyncWebServerRequest *request)
     if (request->hasParam("password", true)) {
         password = request->getParam("password", true)->value();
     } else {
-        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"noPassword\"}");
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"noPassword\"}");
         return;
     }
     Serial.print("Unlocking with password: ");
@@ -202,7 +235,7 @@ void action_unlock(AsyncWebServerRequest *request)
     }
     else
     {
-        respond_json(request, 500, "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"wrongPassword\"}");
     }
 }
 
@@ -219,15 +252,70 @@ void action_update(AsyncWebServerRequest *request)
     respond_json(request, 200, "{\"result\":\"success\"}");
 }
 
-void action_status(AsyncWebServerRequest *request)
+void action_settings_get(AsyncWebServerRequest *request)
 {
-    if (get_is_locked())
+    EEPROMSettingsObject settings;
+    EEPROM.get(EEPROM_SETTINGS_ADDR, settings);
+    const int responsebuflen = 200;
+    char buf[responsebuflen];
+    sprintf(buf, "{\"result\":\"success\", \"data\":{\"locked\":%i,\"servo_closed_position\":%i,\"servo_open_position\":%i,\"name\":\"%s\",\"version\":\"%s\"}}", get_is_locked(), settings.servo_closed_position, settings.servo_open_position, settings.name, FIRMWARE_VERSION);
+    respond_json(request, 200, buf);
+}
+
+// Currently only supports one attribute per request
+void action_settings_post(AsyncWebServerRequest *request)
+{
+    bool is_locked = get_is_locked();
+    EEPROMSettingsObject settings;
+    EEPROM.get(EEPROM_SETTINGS_ADDR, settings);
+    if (request->hasParam("name", true)) 
     {
-        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"locked\"}");
-    }
-    else
+        String name = request->getParam("name", true)->value();
+        if (name.length() <= MAX_NAME_LENGTH)
+        {
+            strcpy(settings.name, name.c_str());
+            EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+            EEPROM.commit();
+            respond_json(request, 200, "{\"result\":\"success\"}");
+        }
+        else
+        {
+            respond_json(request, 500, "{\"result\":\"error\", \"error\":\"invalidParameter\"}");
+        }
+    } 
+    else if (request->hasParam("servo_open_position", true)) 
     {
-        respond_json(request, 200, "{\"result\":\"success\", \"data\":\"unlocked\"}");
+        if (!is_locked)
+        {
+            String newpos = request->getParam("servo_open_position", true)->value();
+            settings.servo_open_position = newpos.toInt();
+            EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+            EEPROM.commit();
+            respond_json(request, 200, "{\"result\":\"success\"}");
+        }
+        else
+        {
+            respond_json(request, 400, "{\"result\":\"error\", \"error\":\"currentlyLocked\"}");
+        }
+    } 
+    else if (request->hasParam("servo_closed_position", true)) 
+    {
+        if (!is_locked)
+        {
+            String newpos = request->getParam("servo_closed_position", true)->value();
+            settings.servo_open_position = newpos.toInt();
+            EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
+            EEPROM.commit();
+            respond_json(request, 200, "{\"result\":\"success\"}");
+        }
+        else
+        {
+            respond_json(request, 400, "{\"result\":\"error\", \"error\":\"currentlyLocked\"}");
+        }
+    } 
+    else 
+    {
+        respond_json(request, 400, "{\"result\":\"error\", \"error\":\"invalidParameter\"}");
     }
 }
 
@@ -291,6 +379,7 @@ void setup()
         delay(5000);
     }
 
+    // TODO: use box name instead of static value
     const int mdns_name_len = 15;
     char mdns_name[mdns_name_len];
     sprintf(mdns_name, "lockbox_%6X", ESP.getChipId());
@@ -308,7 +397,8 @@ void setup()
     server.on("/lock", HTTP_POST, action_lock);
     server.on("/unlock", HTTP_POST, action_unlock);
     server.on("/update", HTTP_POST, action_update);
-    server.on("/status", HTTP_GET, action_status);
+    server.on("/settings", HTTP_GET, action_settings_get);
+    server.on("/settings", HTTP_POST, action_settings_post);
     server.begin();
 }
 

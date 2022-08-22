@@ -30,7 +30,7 @@ bridging_tolerance = 0.8;
 
 // inter-component calculations
 
-cam_bridge_height = lid_thickness;
+cam_bridge_height = lid_thickness+lid_box_tolerance;
 
 box_size_x = outer_wall_thickness * 2 + board_width;
 box_size_z = outer_wall_thickness * 2 + full_pin_height;
@@ -74,7 +74,7 @@ make();
 module make() {
     box();
     translate([0,-40,0])
-    translate([0, -lid_thickness, -lid_thickness-lid_box_tolerance])
+    translate([0, -lid_thickness-lid_box_tolerance, -lid_thickness])
         lid();
 }
 

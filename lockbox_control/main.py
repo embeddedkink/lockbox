@@ -7,6 +7,7 @@ import requests
 import secrets
 import socket
 import string
+import sys
 import time
 from PIL import Image, ImageDraw, ImageFont
 from sys import platform
@@ -51,6 +52,7 @@ def lock(password, host):
     if response['result'] == "success":
         return True
     else:
+        print(f"Error: {response['error']}")
         return False
 
 
@@ -64,6 +66,7 @@ def unlock(password, host):
     if response['result'] == "success":
         return True
     else:
+        print(f"Error: {response['error']}")
         return False
 
 
@@ -76,6 +79,7 @@ def update(host):
     if response['result'] == "success":
         return True
     else:
+        print(f"Error: {response['error']}")
         return False
 
 
@@ -86,6 +90,20 @@ def get_settings(host):
         ).content
     )
     return json.dumps(response["data"])
+
+
+def set_setting(host, key, value):
+    response = json.loads(
+        requests.post(
+            host+"/settings",
+            data={key: value}
+        ).content
+    )
+    if response['result'] == "success":
+        return True
+    else:
+        print(f"Error: {response['error']}")
+        return False
 
 
 def find_devices(device_name = None):
@@ -143,8 +161,11 @@ def retrieve_password(file):
 def main():
     parser = argparse.ArgumentParser(description='Control the EKI Lockbox')
     parser.add_argument('-a', '--action', dest='action',
-                        choices=["lock", "unlock", "update", "getsettings"],
+                        choices=["lock", "unlock", "update", "info", "change_setting"],
                         required=True)
+    parser.add_argument('-s', '--setting', dest='setting',
+                        help="e.g. 'name=my_first_box",
+                        required='change_setting' in sys.argv)
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file',
                         help="e.g. './password.txt' or './password.png'")
@@ -233,8 +254,20 @@ def main():
             print("updated succesfully")
         else:
             print("update failed")
-    elif args.action == "getsettings":
+    elif args.action == "info":
         print("Current settings are: " + get_settings(picked_host))
+    elif args.action == "change_setting":
+        key = args.setting.split('=')[0]
+        value = args.setting[len(key)+1:]
+        if key in ["name", "servo_open_position", "servo_closed_position"] and len(value) > 1:
+            if set_setting(picked_host, key, value):
+                print("Set!")
+            else:
+                print("Not set!")
+        else:
+            print("Invalid key or value")
+    else:
+        print("No action taken!")
 
 
 if __name__ == "__main__":

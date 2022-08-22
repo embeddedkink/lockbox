@@ -30,7 +30,7 @@ The box can be updated manually but will not be seeking for the latest updates a
 - Flash the MCU.
 - Connect the servo to the MCU.
 - Power the MCU by providing voltage over the MCU's Vin and Gnd. See the Power heading down below.
-- Connect to the box' wifi AP (Lockbox!), and have it connect to your network.
+- Connect to the box' wifi AP and have it connect to your network.
 - With the box still open, do a test run.
   - Lock the box.
   - Open the box with the password in the newly created txt file.

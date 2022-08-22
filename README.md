@@ -24,16 +24,25 @@ The box can be updated manually but will not be seeking for the latest updates a
 
 ## Setting up
 
-- Print, or have someone print the box, lid, and locking cam.
-- Aquire an SG90 servo and a NodeMCU Amica (a Lolin does not (yet!) fit the current box design).
-- Verify the tolerances of the locking mechanism with special attention for the ridges inside the cam that interface with the servo. If this interface is not solid, you can turn to superglue.
+- Print, or have someone print the box and lid.
+- Aquire a 9 gram SG90 servo and a NodeMCU Amica (a Lolin does not (yet!) fit the current box design).
+- Cut one of the horns of the servo to length. In the locked position it should stick out a little through its slot so it goes inside the lid when locked.
 - Flash the MCU.
-- Connect the servo to the MCU.
-- Power the MCU by providing voltage over the MCU's Vin and Gnd. See the Power heading down below.
+- Connect the servo to the MCU. Brown to GND, red to 3v3, orange to D4.
+- Pull the power wires through the hole in the bottom of the box and connect 5v (red) to Vin and ground (black) to GND. (See the power heading below.)
 - Connect to the box' wifi AP and have it connect to your network.
-- With the box still open, do a test run.
+- With everything outside of the box, do a test run.
+  - Make sure the horn is in a neutral position.
   - Lock the box.
+  - Verify that the horn is now in the correct rotation to stop the lid from lifting off.
   - Open the box with the password in the newly created txt file.
+- If there are no issues, the assembly can be pushed into the box in a gentle manner. Make sure the side of the MCU with the power wires is on the side of the box with the hole.
+
+Not all 9g servos are the same. If the horn moves too much (only about 90 degrees is necessary) then the open- and closed postion can be adjusted using the controller.
+
+## Usage
+
+Connect power to the microcontroller. Put the key into the empty partition of the lockbox. Put this lid onto the box. Lock using the controller, send the password away to your platform of choice (Only Emlalock has been verified), and delete it permanently on you local machine. The box can now be safely turned off. It only needs to be turned on again when you have the password. For details on how to use the controller, read [the readme](lockbox_control/README.md)
 
 ## Power
 
@@ -46,9 +55,10 @@ The box allows dupont cables to come out of the bottom. You can power it with a 
 
 If you had to abort a session, the electronics can be reset and used in a new box. This can be done by simply connecting the usb port on the microcontroller, listening on the UART (`picocom -b 9600 /dev/ttyUSB0` or with the Arduino IDE) and pressing the RESET button on the microcontroller. It will now send data about its status and the password. Use this password with the control software to unlock like normal.
 
-## Usage
+## Compatibility
 
-Connect power to the microcontroller. Put the key into the empty partition of the lockbox. Put this lid onto the box. Lock using the controller, send the password away to your platform of choice (Only Emlalock has been verified), and delete it permanently on you local machine. The box can now be safely turned off. It only needs to be turned on again when you have the password. For details on how to use the controller, read [the readme](lockbox_control/README.md)
+Early versions of the box were controlled with a TCP connection. This is no longer recommended. Use the latest version of the MCU firmware along with the latest version of the control software.
+Boxes and lids come with their commit hash on the top and bottom. eae25c is a good minimal box but relies on a specially printed locking cam. Later boxes like acaa41 use a horn that comes with the servo that has then be cut to length. Boxes and lids of the same commit hash are guaranteed to be compatible. Some other boxes and lids may be compatible with each other as well, but this is not documented.
 
 ## Project status
 

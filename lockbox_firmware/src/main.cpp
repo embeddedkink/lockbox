@@ -11,21 +11,20 @@
 #define WEBSERVER_H
 #include <ESPAsyncWebServer.h>
 
-#define FIRMWARE_VERSION "20220813"
+#define FIRMWARE_VERSION "20220822"
 
 #define PINSERVO D4
 #define MAX_PASSWORD_LENGTH 64
 #define MAX_NAME_LENGTH 32
 #define TCP_PORT 5000
-#define INITSTRING "EKI_LOCKBOX"
+#define INITSTRING "EKI_LOCKBOX_test"
 #define EEPROM_STATE_ADDR 128
 #define EEPROM_PASSWORD_ADDR EEPROM_STATE_ADDR + sizeof(EEPROMStateObject)
 #define EEPROM_SETTINGS_ADDR EEPROM_PASSWORD_ADDR + sizeof(EEPROMPasswordObject)
 #define EEPROM_SIZE (EEPROM_STATE_ADDR + sizeof(EEPROMStateObject) + sizeof(EEPROMPasswordObject) + sizeof(EEPROMSettingsObject))
 #define DEFAULT_SERVO_OPEN_POSITION 180
 #define DEFAULT_SERVO_CLOSED_POSITION 0
-    // TODO: add unique id to default box name?
-#define DEFAULT_BOX_NAME "EKILB"
+#define DEFAULT_BOX_NAME_PREFIX "eki_lockbox_"
 
 struct EEPROMStateObject
 {
@@ -75,7 +74,11 @@ bool initialize_eeprom()
     EEPROMSettingsObject settings;
     settings.servo_closed_position = DEFAULT_SERVO_CLOSED_POSITION;
     settings.servo_open_position = DEFAULT_SERVO_OPEN_POSITION;
-    strcpy(settings.name, DEFAULT_BOX_NAME);
+    
+    char default_name[MAX_NAME_LENGTH];
+    sprintf(default_name, "%s%6X", DEFAULT_BOX_NAME_PREFIX, ESP.getChipId());
+
+    strcpy(settings.name, default_name);
     EEPROM.put(EEPROM_SETTINGS_ADDR, settings);
 
     if (EEPROM.commit())
@@ -379,11 +382,9 @@ void setup()
         delay(5000);
     }
 
-    // TODO: use box name instead of static value
-    const int mdns_name_len = 15;
-    char mdns_name[mdns_name_len];
-    sprintf(mdns_name, "lockbox_%6X", ESP.getChipId());
-    if (!MDNS.begin(mdns_name))
+    EEPROMSettingsObject settings;
+    EEPROM.get(EEPROM_SETTINGS_ADDR, settings);
+    if (!MDNS.begin(settings.name))
     {
         Serial.println("Error setting up MDNS responder!");
     }

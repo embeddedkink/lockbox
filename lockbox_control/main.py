@@ -148,7 +148,7 @@ def main():
     parser.add_argument('-p', '--password', dest='password')
     parser.add_argument('-f', '--password-file', dest='password_file',
                         help="e.g. './password.txt' or './password.png'")
-    parser.add_argument('-d', '--device-name', dest='device_name',
+    parser.add_argument('-d', '--device', dest='device',
                         help="e.g. 'lockbox_000000._ekilb._tcp.local.'")
     parser.add_argument('--host-override', dest='host_override',
                         help="e.g. 'http://192.168.0.1:5000'")
@@ -158,7 +158,7 @@ def main():
 
     picked_host = ""
     if args.host_override is None:
-        if args.device_name is None:
+        if args.device is None:
             devices = find_devices()
             if (len(devices) == 0):
                 print("Error: no lockbox available. Exiting.")
@@ -171,9 +171,9 @@ def main():
                 print("Error: too many devices. Select a specific one. Exiting.")
                 exit(1)
         else:
-            devices = find_devices(args.device_name)
+            devices = find_devices(args.device)
             for d in devices:
-                if d["name"] == args.device_name:
+                if d["name"] == args.device:
                     picked_host = f'http://{d["address"]}:{d["port"]}'
             if picked_host == "":
                 print("Error: selected device not found. Exiting.")

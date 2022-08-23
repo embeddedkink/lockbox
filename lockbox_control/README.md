@@ -17,7 +17,7 @@ Python3 -m pip install -r requirements.txt
 You can now run the application:
 
 ```Powershell
-python3 main.py --action lock --password-filemode image
+python3 main.py --action lock --password-file C:\Users\username\Desktop\password.png
 ```
 
 ## Linux

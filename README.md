@@ -1,6 +1,6 @@
 # lockbox
 
-An open source safe, cheap and Emlalock-compatible lock box.
+An affordable and safe keyholding lock box.
 
 ## About
 

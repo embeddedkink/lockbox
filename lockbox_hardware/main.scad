@@ -178,8 +178,8 @@ module box()
             translate([i*((box_size_x/2)-outer_wall_thickness)+i*servo_wing_hole_diameter/2,
                 partially_enclosed_length-servo_wings_thickness,
                 outer_wall_thickness+servo_thickness/2-servo_wing_hole_diameter/2])
-                    translate([-servo_wing_hole_diameter/2, 0, 0])
-                    cube([servo_wing_hole_diameter, servo_wings_thickness, servo_wing_hole_diameter]);
+                    translate([0, 0, servo_wing_hole_diameter/2])
+                    rotate([-90,0,0]) cylinder(h=servo_wings_thickness, d=servo_wing_hole_diameter);
         }
     }
 }

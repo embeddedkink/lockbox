@@ -2,6 +2,14 @@
 
 An affordable and safe keyholding lock box.
 
+## This project has been archived
+
+Find the current revisions of the project here:
+
+- [control](https://github.com/embeddedkink/lockbox-controller)
+- [enclosure](https://github.com/embeddedkink/lockbox-enclosure)
+- [firmware](https://github.com/embeddedkink/lockbox-firmware)
+
 ## About
 
 This project aims to create a secure lockbox that can be connected to online keyholding services with minimal effort. With a companion app on a desktop, locking up is as easy as running one single command, and uploading the resulting .txt or .png file.
